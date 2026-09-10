@@ -1,3 +1,17 @@
+---
+title: RentWatch
+emoji: 🏠
+colorFrom: teal
+colorTo: blue
+sdk: docker
+pinned: false
+app_port: 7860
+---
+
+# RentWatch
+
+Landlord rent tracking (physical payments only). Seed: `landlord@rentwatch.local` / `ChangeMe123!`
+
 # RentWatch
 
 Property rent tracking for a single landlord (Mr Eli Stephen), approved agents, and tenants. Physical payments only — no online checkout.

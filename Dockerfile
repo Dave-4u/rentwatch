@@ -18,11 +18,11 @@ RUN pip install --no-cache-dir -r backend/requirements.txt
 COPY backend ./backend
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
-ENV PORT=8000
+ENV PORT=7860
 ENV PYTHONUNBUFFERED=1
 ENV DATABASE_URL=sqlite:////tmp/rentwatch.db
 ENV CORS_ORIGINS=*
 
-EXPOSE 8000
+EXPOSE 7860
 
-CMD ["sh", "-c", "uvicorn backend.app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "uvicorn backend.app.main:app --host 0.0.0.0 --port ${PORT:-7860}"]
