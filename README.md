@@ -4,12 +4,14 @@ Property rent tracking for a single landlord (Mr Eli Stephen), approved agents, 
 
 ## Public demo links
 
-| What | URL |
-|------|-----|
-| **Shareable frontend (GitHub Pages)** | https://Dave-4u.github.io/rentwatch/ |
-| **API + full app (Render, after deploy)** | Set after Render is live — see Deploy below |
+| What | URL | Status |
+|------|-----|--------|
+| **Shareable frontend (GitHub Pages)** | https://dave-4u.github.io/rentwatch/ | **Live** (static UI; API not wired until Render + `VITE_API_URL`) |
+| **API + full app (Render)** | *(not deployed yet)* | Parent: deploy via Render Dashboard Blueprint — see below |
 
 Until `VITE_API_URL` points at a live Render service, the Pages site loads but API calls fail. Prefer the **single-origin Render URL** once deployed (one link serves UI + API).
+
+Pages is currently published from the `gh-pages` branch. The Actions workflow (`.github/workflows/pages.yml`) is in the working tree; pushing it requires a GitHub token with the `workflow` scope (`gh auth refresh -s workflow`).
 
 ## Features
 
@@ -109,19 +111,25 @@ Render CLI is optional; browser Blueprint/Web Service is enough.
 
 ### B. GitHub Pages (frontend only)
 
-Shareable UI: **https://Dave-4u.github.io/rentwatch/**
+Shareable UI (verified): **https://dave-4u.github.io/rentwatch/**
 
-1. Repo must be **public** (required for free Pages).
-2. Settings → Pages → Source: **GitHub Actions** (workflow `.github/workflows/pages.yml`).
+**Current setup:** legacy Pages from branch `gh-pages` (already enabled). Rebuild/push that branch after frontend changes, or switch to Actions once the workflow file is on `main`.
+
+1. Repo is **public** (required for free Pages).
+2. Optional Actions path: Settings → Pages → Source: **GitHub Actions** after `.github/workflows/pages.yml` is pushed (needs `workflow` OAuth scope).
 3. Set repository **variable** (Settings → Secrets and variables → Actions → Variables):
    - Name: `VITE_API_URL`
    - Value: your Render origin with **no trailing slash**, e.g. `https://rentwatch.onrender.com`
-4. Push to `main` (or run **Deploy GitHub Pages** workflow manually).
+4. Rebuild Pages with `VITE_PAGES=true` and that API URL, then update `gh-pages` (or let the Actions workflow deploy).
 5. Pages builds with `base: '/rentwatch/'` and calls the Render API via `VITE_API_URL`.
 
 Until `VITE_API_URL` is set, the static site still deploys but cannot reach the API.
 
 Docker / same-origin builds use `base: '/'` and empty `VITE_API_URL` (see `Dockerfile`).
+
+### C. Render CLI
+
+Render CLI is **not** available in this environment (no `render` binary, no Docker). Finish API deploy in the browser: [dashboard.render.com](https://dashboard.render.com) → New → Blueprint → select `Dave-4u/rentwatch` → apply `render.yaml`.
 
 ### CORS
 
