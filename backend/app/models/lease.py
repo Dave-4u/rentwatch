@@ -23,8 +23,10 @@ class Lease(Base):
     property_id: Mapped[int] = mapped_column(ForeignKey("properties.id"), nullable=False)
     tenant_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     rent_amount: Mapped[float] = mapped_column(Float, nullable=False)
-    billing_period: Mapped[str] = mapped_column(String(20), default="monthly", nullable=False)
-    due_day: Mapped[int] = mapped_column(Integer, nullable=False)
+    billing_period: Mapped[str] = mapped_column(String(20), default="yearly", nullable=False)
+    # Legacy day-of-month; kept for older rows / monthly leases. Prefer due_date.
+    due_day: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     status: Mapped[LeaseStatus] = mapped_column(
         _enum_col(LeaseStatus), nullable=False, default=LeaseStatus.active

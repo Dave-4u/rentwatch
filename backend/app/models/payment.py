@@ -30,6 +30,6 @@ class Payment(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
-    period_key: Mapped[str] = mapped_column(String(7), nullable=False)
+    period_key: Mapped[str] = mapped_column(String(16), nullable=False)
 
     lease: Mapped["Lease"] = relationship("Lease", back_populates="payments")  # noqa: F821

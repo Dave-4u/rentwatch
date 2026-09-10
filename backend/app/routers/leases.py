@@ -78,14 +78,16 @@ def create_lease(
         raise HTTPException(status_code=400, detail="tenant_id must be a tenant user")
     if tenant.status != UserStatus.approved:
         raise HTTPException(status_code=400, detail="Tenant must be approved")
+    billing = payload.billing_period or "yearly"
     lease = Lease(
         property_id=payload.property_id,
         tenant_id=payload.tenant_id,
         rent_amount=payload.rent_amount,
-        due_day=payload.due_day,
+        due_date=payload.due_date,
+        due_day=payload.due_day if payload.due_day is not None else payload.due_date.day,
         start_date=payload.start_date,
         status=payload.status,
-        billing_period="monthly",
+        billing_period=billing,
     )
     db.add(lease)
     db.commit()
@@ -126,7 +128,10 @@ def update_lease(
     lease = db.get(Lease, lease_id)
     if not lease:
         raise HTTPException(status_code=404, detail="Lease not found")
-    for k, v in payload.model_dump(exclude_unset=True).items():
+    data = payload.model_dump(exclude_unset=True)
+    if "due_date" in data and data["due_date"] is not None and "due_day" not in data:
+        data["due_day"] = data["due_date"].day
+    for k, v in data.items():
         setattr(lease, k, v)
     db.commit()
     lease = (

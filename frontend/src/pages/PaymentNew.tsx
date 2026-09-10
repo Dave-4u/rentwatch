@@ -16,7 +16,7 @@ export default function PaymentNew() {
     paid_on: new Date().toISOString().slice(0, 10),
     method: 'cash',
     note: '',
-    period_key: new Date().toISOString().slice(0, 7),
+    period_key: String(new Date().getFullYear()),
   })
 
   useEffect(() => {
@@ -61,6 +61,8 @@ export default function PaymentNew() {
   }
 
   const selected = leases.find((l) => String(l.id) === form.lease_id)
+  const periodHint =
+    selected?.billing_period === 'monthly' ? 'Period (YYYY-MM)' : 'Rent year (YYYY)'
 
   return (
     <div>
@@ -89,6 +91,7 @@ export default function PaymentNew() {
                     ...form,
                     lease_id: e.target.value,
                     amount: l ? String(l.balance_due || l.rent_amount) : form.amount,
+                    period_key: l?.current_period || form.period_key,
                   })
                 }}
                 required
@@ -104,8 +107,9 @@ export default function PaymentNew() {
             </label>
             {selected && (
               <p className="muted">
-                Rent {formatNgn(selected.rent_amount)} · period {selected.current_period} · due day{' '}
-                {selected.due_day}
+                Rent {formatNgn(selected.rent_amount)} ·{' '}
+                {selected.billing_period === 'monthly' ? 'monthly' : 'yearly'} · period{' '}
+                {selected.current_period} · due {selected.due_date || '—'}
               </p>
             )}
             <label>
@@ -129,11 +133,11 @@ export default function PaymentNew() {
               />
             </label>
             <label>
-              Period (YYYY-MM)
+              {periodHint}
               <input
                 value={form.period_key}
                 onChange={(e) => setForm({ ...form, period_key: e.target.value })}
-                pattern="\d{4}-\d{2}"
+                pattern={selected?.billing_period === 'monthly' ? '\\d{4}-\\d{2}' : '\\d{4}'}
                 required
               />
             </label>

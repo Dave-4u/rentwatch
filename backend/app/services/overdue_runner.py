@@ -8,12 +8,11 @@ from sqlalchemy.orm import Session, joinedload
 
 from backend.app.models.lease import Lease, LeaseStatus
 from backend.app.models.notification import Notification
-from backend.app.models.user import User, UserRole, UserStatus
 from backend.app.services.overdue import (
     balance_due_for_period,
     current_period,
+    effective_due_date,
     is_lease_overdue,
-    period_key_for,
 )
 
 
@@ -21,9 +20,16 @@ def lease_payment_dicts(lease: Lease) -> list[dict]:
     return [{"period_key": p.period_key, "amount": p.amount} for p in lease.payments]
 
 
+def _lease_due(lease: Lease) -> date:
+    return effective_due_date(
+        due_date=lease.due_date,
+        due_day=lease.due_day,
+        start_date=lease.start_date,
+    )
+
+
 def check_and_notify_overdue(db: Session, today: date | None = None) -> list[Lease]:
     today = today or date.today()
-    period = current_period(today)
     leases = (
         db.query(Lease)
         .options(joinedload(Lease.payments), joinedload(Lease.property), joinedload(Lease.tenant))
@@ -33,21 +39,30 @@ def check_and_notify_overdue(db: Session, today: date | None = None) -> list[Lea
     overdue: list[Lease] = []
     for lease in leases:
         payments = lease_payment_dicts(lease)
+        billing = lease.billing_period or "yearly"
+        resolved = _lease_due(lease)
         if not is_lease_overdue(
             rent_amount=lease.rent_amount,
-            due_day=lease.due_day,
             start_date=lease.start_date,
             status=lease.status.value,
             payments=payments,
             today=today,
+            billing_period=billing,
+            due_date=resolved,
+            due_day=lease.due_day,
         ):
             continue
         overdue.append(lease)
+        period = current_period(today, billing_period=billing, due_date=resolved)
         bal = balance_due_for_period(
-            rent_amount=lease.rent_amount, payments=payments, period=period, today=today
+            rent_amount=lease.rent_amount,
+            payments=payments,
+            period=period,
+            today=today,
+            billing_period=billing,
+            due_date=resolved,
         )
         prop_name = lease.property.name if lease.property else f"Property #{lease.property_id}"
-        # Notify tenant once per period (avoid duplicates by title+period in message)
         marker = f"[overdue:{period}:lease:{lease.id}]"
         existing = (
             db.query(Notification)
@@ -76,25 +91,35 @@ def check_and_notify_overdue(db: Session, today: date | None = None) -> list[Lea
 def enrich_lease(lease: Lease, today: date | None = None) -> dict:
     today = today or date.today()
     payments = lease_payment_dicts(lease)
-    period = current_period(today)
+    billing = lease.billing_period or "yearly"
+    resolved = _lease_due(lease)
+    period = current_period(today, billing_period=billing, due_date=resolved)
     overdue = is_lease_overdue(
         rent_amount=lease.rent_amount,
-        due_day=lease.due_day,
         start_date=lease.start_date,
         status=lease.status.value,
         payments=payments,
         today=today,
+        billing_period=billing,
+        due_date=resolved,
+        due_day=lease.due_day,
     )
     bal = balance_due_for_period(
-        rent_amount=lease.rent_amount, payments=payments, period=period, today=today
+        rent_amount=lease.rent_amount,
+        payments=payments,
+        period=period,
+        today=today,
+        billing_period=billing,
+        due_date=resolved,
     )
     return {
         "id": lease.id,
         "property_id": lease.property_id,
         "tenant_id": lease.tenant_id,
         "rent_amount": lease.rent_amount,
-        "billing_period": lease.billing_period,
-        "due_day": lease.due_day,
+        "billing_period": billing,
+        "due_day": lease.due_day if lease.due_day is not None else resolved.day,
+        "due_date": resolved,
         "start_date": lease.start_date,
         "status": lease.status,
         "created_at": lease.created_at,

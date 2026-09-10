@@ -11,6 +11,7 @@ from backend.app.database import Base, engine, SessionLocal
 import backend.app.models  # noqa: F401 — register metadata
 from backend.app.routers import admin, auth, dashboard, leases, notifications, payments, properties
 from backend.app.seed import ensure_landlord
+from backend.app.db_migrate import ensure_schema
 from backend.app.services.overdue_runner import check_and_notify_overdue
 
 DIST_DIR = Path(__file__).resolve().parents[2] / "frontend" / "dist"
@@ -19,6 +20,7 @@ DIST_DIR = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    ensure_schema(engine)
     db = SessionLocal()
     try:
         ensure_landlord(db)

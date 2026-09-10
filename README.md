@@ -31,7 +31,7 @@ Pages is currently published from the `gh-pages` branch. The Actions workflow (`
 
 - Sole landlord (seeded). Agents and tenants register and wait for approval.
 - Properties (up to ~100) with types: Self, One bedroom, Two bedroom, Three bedroom, Store, Duplex.
-- Monthly leases with due day (1–28), rent in NGN.
+- Yearly leases (Nigeria default) with a full calendar due date; optional monthly billing. Rent in NGN.
 - Staff record cash/transfer/other payments; tenants see history and balance.
 - Overdue detection for unpaid periods after the due date, with in-app notifications.
 
@@ -168,7 +168,7 @@ rentwatch/
 1. Sign in as landlord.
 2. Register an agent and a tenant in another browser/session; approve them under Approvals.
 3. Create a property, then a lease linking the tenant.
-4. After the due day (or set due_day in the past for demos), overdue appears on dashboards; tenant gets a notification.
+4. After the due date (or set due_date in the past for demos), overdue appears on dashboards; tenant gets a notification.
 5. Record a physical payment under Pay; balance clears when period payments cover rent.
 
 ## Notes

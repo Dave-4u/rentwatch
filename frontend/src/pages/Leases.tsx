@@ -10,12 +10,14 @@ export default function Leases() {
   const [tenants, setTenants] = useState<{ id: number; full_name: string; email: string }[]>([])
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const today = new Date().toISOString().slice(0, 10)
   const [form, setForm] = useState({
     property_id: '',
     tenant_id: '',
     rent_amount: '',
-    due_day: '5',
-    start_date: new Date().toISOString().slice(0, 10),
+    due_date: today,
+    start_date: today,
+    billing_period: 'yearly',
   })
 
   async function load() {
@@ -48,8 +50,9 @@ export default function Leases() {
         property_id: Number(form.property_id),
         tenant_id: Number(form.tenant_id),
         rent_amount: Number(form.rent_amount),
-        due_day: Number(form.due_day),
+        due_date: form.due_date,
         start_date: form.start_date,
+        billing_period: form.billing_period,
         status: 'active',
       })
       setShowForm(false)
@@ -57,8 +60,9 @@ export default function Leases() {
         property_id: '',
         tenant_id: '',
         rent_amount: '',
-        due_day: '5',
-        start_date: new Date().toISOString().slice(0, 10),
+        due_date: today,
+        start_date: today,
+        billing_period: 'yearly',
       })
       await load()
     } catch (err) {
@@ -129,7 +133,7 @@ export default function Leases() {
               </p>
             )}
             <label>
-              Rent amount (NGN)
+              Rent amount (NGN / year)
               <input
                 type="number"
                 min={1}
@@ -139,13 +143,21 @@ export default function Leases() {
               />
             </label>
             <label>
-              Due day (1–28)
+              Billing period
+              <select
+                value={form.billing_period}
+                onChange={(e) => setForm({ ...form, billing_period: e.target.value })}
+              >
+                <option value="yearly">Yearly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </label>
+            <label>
+              Due date
               <input
-                type="number"
-                min={1}
-                max={28}
-                value={form.due_day}
-                onChange={(e) => setForm({ ...form, due_day: e.target.value })}
+                type="date"
+                value={form.due_date}
+                onChange={(e) => setForm({ ...form, due_date: e.target.value })}
                 required
               />
             </label>
@@ -181,8 +193,8 @@ export default function Leases() {
             )}
           </div>
           <div className="muted">
-            Tenant: {l.tenant_name || l.tenant_id} · Rent {formatNgn(l.rent_amount)} · Due day{' '}
-            {l.due_day}
+            Tenant: {l.tenant_name || l.tenant_id} · Rent {formatNgn(l.rent_amount)} ·{' '}
+            {l.billing_period === 'monthly' ? 'Monthly' : 'Yearly'} · Due {l.due_date || '—'}
           </div>
           <div className="muted">
             Period {l.current_period} · Balance {formatNgn(l.balance_due)} · Started {l.start_date}

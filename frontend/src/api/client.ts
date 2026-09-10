@@ -29,7 +29,8 @@ export interface Lease {
   tenant_id: number
   rent_amount: number
   billing_period: string
-  due_day: number
+  due_day?: number | null
+  due_date?: string | null
   start_date: string
   status: 'active' | 'ended'
   created_at: string

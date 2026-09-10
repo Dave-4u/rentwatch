@@ -12,7 +12,8 @@ class PaymentCreate(BaseModel):
     paid_on: date
     method: PaymentMethod
     note: Optional[str] = None
-    period_key: Optional[str] = None  # YYYY-MM; defaults to paid_on month
+    # Yearly: YYYY ; monthly: YYYY-MM. Defaults from lease + paid_on.
+    period_key: Optional[str] = None
 
 
 class PaymentOut(BaseModel):

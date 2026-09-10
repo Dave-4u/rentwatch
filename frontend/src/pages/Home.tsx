@@ -58,7 +58,7 @@ export default function Home() {
               <div>
                 <strong>{l.property_name || `Property #${l.property_id}`}</strong>
                 <div className="muted">
-                  Rent {formatNgn(l.rent_amount)} · due day {l.due_day} · {l.current_period}
+                  Rent {formatNgn(l.rent_amount)} · {l.billing_period === 'monthly' ? 'monthly' : 'yearly'} · due {l.due_date || '—'} · {l.current_period}
                 </div>
               </div>
               <div>
