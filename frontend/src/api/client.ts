@@ -1,7 +1,7 @@
 const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
 export type UserRole = 'landlord' | 'agent' | 'tenant'
-export type UserStatus = 'pending' | 'approved' | 'rejected' | 'suspended'
+export type UserStatus = 'pending' | 'approved' | 'rejected' | 'suspended' | 'deleted'
 
 export interface User {
   id: number
@@ -34,6 +34,7 @@ export interface Lease {
   status: 'active' | 'ended'
   created_at: string
   property_name?: string | null
+  property_type?: string | null
   tenant_name?: string | null
   is_overdue?: boolean | null
   balance_due?: number | null
@@ -114,9 +115,12 @@ export const api = {
   me: () => request<User>('/auth/me'),
 
   pendingUsers: () => request<User[]>('/admin/pending-users'),
+  users: (role?: UserRole) =>
+    request<User[]>(role ? `/admin/users?role=${role}` : '/admin/users'),
   approveUser: (id: number) => request<User>(`/admin/users/${id}/approve`, { method: 'POST' }),
   rejectUser: (id: number) => request<User>(`/admin/users/${id}/reject`, { method: 'POST' }),
   suspendUser: (id: number) => request<User>(`/admin/users/${id}/suspend`, { method: 'POST' }),
+  deleteUser: (id: number) => request<User>(`/admin/users/${id}`, { method: 'DELETE' }),
 
   properties: () => request<Property[]>('/properties'),
   property: (id: number) => request<Property>(`/properties/${id}`),
@@ -126,13 +130,15 @@ export const api = {
     request<Property>(`/properties/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteProperty: (id: number) => request<void>(`/properties/${id}`, { method: 'DELETE' }),
 
-  leases: () => request<Lease[]>('/leases'),
+  leases: (status?: 'active' | 'ended') =>
+    request<Lease[]>(status ? `/leases?status=${status}` : '/leases'),
+  activeLeasesForPayment: () => request<Lease[]>('/leases/options/active'),
   createLease: (body: Record<string, unknown>) =>
     request<Lease>('/leases', { method: 'POST', body: JSON.stringify(body) }),
   updateLease: (id: number, body: Record<string, unknown>) =>
     request<Lease>(`/leases/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   tenantsForLease: () =>
-    request<{ id: number; full_name: string; email: string }[]>('/leases/meta/tenants'),
+    request<{ id: number; full_name: string; email: string }[]>('/leases/options/tenants'),
 
   payments: (leaseId?: number) =>
     request<Payment[]>(leaseId ? `/payments?lease_id=${leaseId}` : '/payments'),
@@ -151,4 +157,11 @@ export const api = {
 export function formatNgn(n: number | null | undefined): string {
   const v = Number(n || 0)
   return `NGN ${v.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+}
+
+export function leaseLabel(l: Lease): string {
+  const prop = l.property_name || `Property #${l.property_id}`
+  const unit = l.property_type ? ` (${l.property_type})` : ''
+  const tenant = l.tenant_name || `Tenant #${l.tenant_id}`
+  return `${tenant} — ${prop}${unit} · ${formatNgn(l.rent_amount)}`
 }

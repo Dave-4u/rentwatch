@@ -18,6 +18,7 @@ class UserStatus(str, enum.Enum):
     approved = "approved"
     rejected = "rejected"
     suspended = "suspended"
+    deleted = "deleted"
 
 
 def _enum_col(enum_cls):

@@ -3,7 +3,7 @@ import { api, formatNgn, type Lease, type Property } from '../api/client'
 import { useAuth } from '../auth'
 
 export default function Leases() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const staff = user?.role === 'landlord' || user?.role === 'agent'
   const [leases, setLeases] = useState<Lease[]>([])
   const [props, setProps] = useState<Property[]>([])
@@ -20,10 +20,15 @@ export default function Leases() {
 
   async function load() {
     try {
+      setError('')
       setLeases(await api.leases())
-      if (staff) {
-        setProps(await api.properties())
-        setTenants(await api.tenantsForLease())
+      if (user?.role === 'landlord' || user?.role === 'agent') {
+        const [propertyList, tenantList] = await Promise.all([
+          api.properties(),
+          api.tenantsForLease(),
+        ])
+        setProps(propertyList)
+        setTenants(tenantList)
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load')
@@ -31,8 +36,10 @@ export default function Leases() {
   }
 
   useEffect(() => {
+    if (authLoading || !user) return
     load()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user?.id, user?.role])
 
   async function onCreate(e: FormEvent) {
     e.preventDefault()
@@ -46,6 +53,13 @@ export default function Leases() {
         status: 'active',
       })
       setShowForm(false)
+      setForm({
+        property_id: '',
+        tenant_id: '',
+        rent_amount: '',
+        due_day: '5',
+        start_date: new Date().toISOString().slice(0, 10),
+      })
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Create failed')
@@ -83,14 +97,17 @@ export default function Leases() {
                 onChange={(e) => setForm({ ...form, property_id: e.target.value })}
                 required
               >
-                <option value="">Select…</option>
+                <option value="">Select property…</option>
                 {props.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name}
+                    {p.name} ({p.property_type})
                   </option>
                 ))}
               </select>
             </label>
+            {props.length === 0 && (
+              <p className="empty">No properties yet. Create a property first.</p>
+            )}
             <label>
               Tenant
               <select
@@ -98,7 +115,7 @@ export default function Leases() {
                 onChange={(e) => setForm({ ...form, tenant_id: e.target.value })}
                 required
               >
-                <option value="">Select…</option>
+                <option value="">Select tenant…</option>
                 {tenants.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.full_name} ({t.email})
@@ -106,6 +123,11 @@ export default function Leases() {
                 ))}
               </select>
             </label>
+            {tenants.length === 0 && (
+              <p className="empty">
+                No approved tenants yet. Approve a tenant under Approvals, then assign them here.
+              </p>
+            )}
             <label>
               Rent amount (NGN)
               <input
@@ -136,7 +158,7 @@ export default function Leases() {
                 required
               />
             </label>
-            <button className="btn" type="submit">
+            <button className="btn" type="submit" disabled={!tenants.length || !props.length}>
               Save lease
             </button>
           </form>
@@ -146,7 +168,10 @@ export default function Leases() {
       {leases.map((l) => (
         <div className="card" key={l.id}>
           <div className="row" style={{ justifyContent: 'space-between' }}>
-            <h3>{l.property_name || `Property #${l.property_id}`}</h3>
+            <h3>
+              {l.property_name || `Property #${l.property_id}`}
+              {l.property_type ? ` · ${l.property_type}` : ''}
+            </h3>
             {l.is_overdue ? (
               <span className="badge overdue">Overdue</span>
             ) : l.status === 'active' ? (

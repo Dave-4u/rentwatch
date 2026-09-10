@@ -99,6 +99,11 @@ def enrich_lease(lease: Lease, today: date | None = None) -> dict:
         "status": lease.status,
         "created_at": lease.created_at,
         "property_name": lease.property.name if lease.property else None,
+        "property_type": (
+            lease.property.property_type.value
+            if lease.property and getattr(lease.property, "property_type", None)
+            else None
+        ),
         "tenant_name": lease.tenant.full_name if lease.tenant else None,
         "is_overdue": overdue,
         "balance_due": bal,

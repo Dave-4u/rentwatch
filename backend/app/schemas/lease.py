@@ -33,6 +33,7 @@ class LeaseOut(BaseModel):
     status: LeaseStatus
     created_at: datetime
     property_name: Optional[str] = None
+    property_type: Optional[str] = None
     tenant_name: Optional[str] = None
     is_overdue: Optional[bool] = None
     balance_due: Optional[float] = None

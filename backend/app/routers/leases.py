@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
 from backend.app.database import get_db
 from backend.app.deps import require_approved, require_staff
-from backend.app.models.lease import Lease
+from backend.app.models.lease import Lease, LeaseStatus
 from backend.app.models.property import Property
 from backend.app.models.user import User, UserRole, UserStatus
 from backend.app.schemas.lease import LeaseCreate, LeaseOut, LeaseUpdate
@@ -13,19 +13,26 @@ router = APIRouter(prefix="/leases", tags=["leases"])
 
 
 @router.get("", response_model=list[LeaseOut])
-def list_leases(db: Session = Depends(get_db), user: User = Depends(require_approved)):
+def list_leases(
+    status: LeaseStatus | None = Query(default=None),
+    db: Session = Depends(get_db),
+    user: User = Depends(require_approved),
+):
     check_and_notify_overdue(db)
     q = db.query(Lease).options(
         joinedload(Lease.property), joinedload(Lease.tenant), joinedload(Lease.payments)
     )
     if user.role == UserRole.tenant:
         q = q.filter(Lease.tenant_id == user.id)
+    if status is not None:
+        q = q.filter(Lease.status == status)
     leases = q.order_by(Lease.id.desc()).all()
     return [LeaseOut(**enrich_lease(l)) for l in leases]
 
 
-@router.get("/meta/tenants")
+@router.get("/options/tenants")
 def list_tenants_for_lease(db: Session = Depends(get_db), _: User = Depends(require_staff)):
+    """Approved tenants available for lease assignment (staff only)."""
     tenants = (
         db.query(User)
         .filter(User.role == UserRole.tenant, User.status == UserStatus.approved)
@@ -33,6 +40,30 @@ def list_tenants_for_lease(db: Session = Depends(get_db), _: User = Depends(requ
         .all()
     )
     return [{"id": t.id, "full_name": t.full_name, "email": t.email} for t in tenants]
+
+
+# Keep old path working for any cached clients
+@router.get("/meta/tenants")
+def list_tenants_for_lease_legacy(
+    db: Session = Depends(get_db), staff: User = Depends(require_staff)
+):
+    return list_tenants_for_lease(db=db, _=staff)
+
+
+@router.get("/options/active")
+def list_active_leases_for_payment(
+    db: Session = Depends(get_db), _: User = Depends(require_staff)
+):
+    """Active leases with tenant + property labels for the payment picker."""
+    check_and_notify_overdue(db)
+    leases = (
+        db.query(Lease)
+        .options(joinedload(Lease.property), joinedload(Lease.tenant), joinedload(Lease.payments))
+        .filter(Lease.status == LeaseStatus.active)
+        .order_by(Lease.id.desc())
+        .all()
+    )
+    return [LeaseOut(**enrich_lease(l)) for l in leases]
 
 
 @router.post("", response_model=LeaseOut, status_code=201)

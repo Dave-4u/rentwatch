@@ -17,10 +17,10 @@ def list_properties(
 ):
     if user.role in (UserRole.landlord, UserRole.agent):
         return db.query(Property).order_by(Property.name.asc()).all()
-    # Tenants: only assigned properties
+    # Tenants: only properties with an active lease assignment
     leases = (
         db.query(Lease)
-        .filter(Lease.tenant_id == user.id)
+        .filter(Lease.tenant_id == user.id, Lease.status == LeaseStatus.active)
         .options(joinedload(Lease.property))
         .all()
     )

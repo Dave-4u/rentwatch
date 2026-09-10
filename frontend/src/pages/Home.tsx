@@ -48,7 +48,11 @@ export default function Home() {
         </div>
         <div className="card">
           <h2>My leases</h2>
-          {leases.length === 0 && <p className="empty">No leases yet.</p>}
+          {leases.length === 0 && (
+            <p className="empty">
+              No property assigned yet — wait for your landlord/agent.
+            </p>
+          )}
           {leases.map((l) => (
             <div className="list-item" key={l.id}>
               <div>
