@@ -2,6 +2,15 @@
 
 Property rent tracking for a single landlord (Mr Eli Stephen), approved agents, and tenants. Physical payments only — no online checkout.
 
+## Public demo links
+
+| What | URL |
+|------|-----|
+| **Shareable frontend (GitHub Pages)** | https://Dave-4u.github.io/rentwatch/ |
+| **API + full app (Render, after deploy)** | Set after Render is live — see Deploy below |
+
+Until `VITE_API_URL` points at a live Render service, the Pages site loads but API calls fail. Prefer the **single-origin Render URL** once deployed (one link serves UI + API).
+
 ## Features
 
 - Sole landlord (seeded). Agents and tenants register and wait for approval.
@@ -16,7 +25,7 @@ Property rent tracking for a single landlord (Mr Eli Stephen), approved agents, 
 - Node.js 18+ and npm
 - Windows, macOS, or Linux
 
-## Quick start
+## Quick start (local)
 
 ### 1. Backend
 
@@ -52,7 +61,16 @@ npm run dev
 
 Open http://127.0.0.1:5173 — Vite proxies API calls to port 8000.
 
-### 3. Tests
+### 3. Single-origin production (local)
+
+```bash
+cd frontend && npm run build && cd ..
+uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+```
+
+FastAPI serves `frontend/dist` for non-API routes (SPA fallback). Leave `VITE_API_URL` empty so the UI calls the same origin.
+
+### 4. Tests
 
 ```bash
 # from project root, venv active
@@ -69,15 +87,56 @@ pytest
 
 **Change this password after first login in production.**
 
-Nobody can register as landlord. New agents/tenants stay `pending` until the landlord or an approved agent approves them. Pending users get HTTP 403 on dashboards and see a waiting screen.
+Nobody can register as landlord. New agents/tenants stay `pending` until the landlord or an approved agent approves them.
+
+## Deploy
+
+### A. Render (API + UI, recommended share link)
+
+1. Push this repo to GitHub (already public).
+2. In [Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint**, connect `Dave-4u/rentwatch` and apply `render.yaml`.
+   - Or **New** → **Web Service** → Docker from this repo; name `rentwatch`.
+3. Env (Blueprint sets these; override as needed):
+   - `SECRET_KEY` — auto-generated on Blueprint, or set a long random string
+   - `CORS_ORIGINS=*` (or include `https://dave-4u.github.io`)
+   - `DATABASE_URL=sqlite:////tmp/rentwatch.db`
+4. After deploy, open `https://<service>.onrender.com/health` — expect `{"status":"ok",...}`.
+5. That same URL serves the full app (UI + API). Send **that** link to Mr Stephen.
+
+**Warning:** Free Render disks are ephemeral. SQLite under `/tmp` **resets on every restart/redeploy**. Demo data (including seed) is re-created on startup; do not rely on persistence for production.
+
+Render CLI is optional; browser Blueprint/Web Service is enough.
+
+### B. GitHub Pages (frontend only)
+
+Shareable UI: **https://Dave-4u.github.io/rentwatch/**
+
+1. Repo must be **public** (required for free Pages).
+2. Settings → Pages → Source: **GitHub Actions** (workflow `.github/workflows/pages.yml`).
+3. Set repository **variable** (Settings → Secrets and variables → Actions → Variables):
+   - Name: `VITE_API_URL`
+   - Value: your Render origin with **no trailing slash**, e.g. `https://rentwatch.onrender.com`
+4. Push to `main` (or run **Deploy GitHub Pages** workflow manually).
+5. Pages builds with `base: '/rentwatch/'` and calls the Render API via `VITE_API_URL`.
+
+Until `VITE_API_URL` is set, the static site still deploys but cannot reach the API.
+
+Docker / same-origin builds use `base: '/'` and empty `VITE_API_URL` (see `Dockerfile`).
+
+### CORS
+
+`CORS_ORIGINS` is a comma-separated list (see `.env.example`). Defaults include localhost and `https://dave-4u.github.io`. Use `*` to allow any origin (credentials middleware is disabled when `*` is used).
 
 ## Project layout
 
 ```
 rentwatch/
-  backend/          FastAPI + SQLAlchemy + SQLite
-  frontend/         React + TypeScript + Vite PWA
-  data/             SQLite database file (created at runtime)
+  backend/                 FastAPI + SQLAlchemy + SQLite
+  frontend/                React + TypeScript + Vite PWA
+  Dockerfile               Multi-stage Node build + Python/uvicorn
+  render.yaml              Render Blueprint (free Web Service)
+  .github/workflows/       GitHub Pages deploy
+  data/                    Local SQLite (created at runtime)
   .env.example
   README.md
 ```
@@ -92,6 +151,6 @@ rentwatch/
 
 ## Notes
 
-- Database default: `./data/rentwatch.db` relative to the project root.
+- Local DB default: `./data/rentwatch.db` relative to the project root.
 - JWT secret and CORS are configurable via environment variables (see `.env.example`).
-- Built for client demos — keep the repo private and rotate credentials before any public deploy.
+- Built for client demos — rotate the seed password and `SECRET_KEY` before sharing widely.

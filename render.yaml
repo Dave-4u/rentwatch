@@ -1,0 +1,16 @@
+# Render Blueprint — free Web Service for RentWatch demo
+# Dashboard: https://dashboard.render.com → New → Blueprint
+services:
+  - type: web
+    name: rentwatch
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: DATABASE_URL
+        value: sqlite:////tmp/rentwatch.db
